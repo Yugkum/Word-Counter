@@ -1,1 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Counter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f4f4f4 100%);
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            max-width: 420px;
+            margin: 60px auto 20px auto;
+            background: #fff;
+            padding: 36px 30px 30px 30px;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            animation: fadeIn 0.7s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 18px auto;
+        }
+        h2 {
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #1a237e;
+        }
+        .drop-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 32px 10px;
+            text-align: center;
+            color: #888;
+            margin-bottom: 22px;
+            background: #f9faff;
+            transition: border-color 0.3s, color 0.3s;
+            cursor: pointer;
+        }
+        .drop-area.dragover {
+            border-color: #0056b3;
+            color: #0056b3;
+            background: #e3f0ff;
+        }
+        input[type="file"] { display: none; }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+            transform: translateY(-2px) scale(1.03);
+        }
+        #result {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 19px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 32px; height: 32px;
+            border: 4px solid #eee;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 8px auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 17px;
+        }
+        .success {
+            background: #e6f9e8;
+            color: #1b5e20;
+            border: 1px solid #b2dfdb;
+        }
+        .error {
+            background: #fdeaea;
+            color: #b71c1c;
+            border: 1px solid #ffcdd2;
+        }
+        footer {
+            text-align: center;
+            color: #888;
+            font-size: 15px;
+            margin-bottom: 18px;
+            margin-top: auto;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 500px) {
+            .container { max-width: 98vw; padding: 18px 4vw 18px 4vw; }
+            h2 { font-size: 1.3em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <svg class="logo" width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="7" y="7" width="46" height="46" rx="8" fill="#007bff"/>
+                <rect x="15" y="15" width="30" height="30" rx="4" fill="#fff"/>
+                <text x="30" y="38" text-anchor="middle" font-size="18" font-family="Arial, sans-serif" fill="#007bff" font-weight="bold">WC</text>
+            </svg>
+        </div>
+        <h2>Word Counter</h2>
+        <div class="drop-area" id="dropArea">Drag & drop PDF, TXT, or DOCX here or click to select</div>
+        <form id="uploadForm">
+            <input type="file" id="pdfFile" name="file" accept=".pdf,.txt,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" required />
+            <button type="submit">Upload & Count Words</button>
+        </form>
+        <div id="result"></div>
+    </div>
+    <footer>
+        &copy; 2025 Word Counter &mdash; Made with <span style="color:#007bff;">&#10084;</span> for productivity
+    </footer>
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('pdfFile');
+        const uploadForm = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
 
+        // Drag and drop events
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+            }
+        });
+
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!fileInput.files.length) return;
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+            resultDiv.innerHTML = '<div class="spinner"></div><div>Processing...</div>';
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.word_count !== undefined) {
+                    resultDiv.innerHTML = `<div class='message success'>Total words: <b>${data.word_count}</b></div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class='message error'>${data.error || 'Error processing PDF.'}</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class='message error'>Server error.</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
